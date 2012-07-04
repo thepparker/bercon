@@ -1,5 +1,5 @@
 # depslib dependency file v1.0
-1341423436 source:e:\git\bercon\bercon\main.cpp
+1341428230 source:e:\git\bercon\bercon\main.cpp
 	<iostream>
 	<windows.h>
 	<stdlib.h>
@@ -15,19 +15,19 @@
 	<WinSock2.h>
 	<string>
 
-1341423456 source:e:\git\bercon\bercon\crc32.cpp
+1341424522 source:e:\git\bercon\bercon\crc32.cpp
 	<string.h>
 	<inttypes.h>
 	"crc32.h"
 	<iostream>
 	<stdio.h>
 
-1341417868 source:e:\git\bercon\bercon\socket.cpp
+1341424218 source:e:\git\bercon\bercon\socket.cpp
 	"socket.h"
 	<iostream>
 
 1341384229 e:\git\bercon\bercon\crc32.h
 	<inttypes.h>
 
-1341421623 e:\git\bercon\bercon\rcon.h
+1341424365 e:\git\bercon\bercon\rcon.h
 

@@ -1,3 +1,20 @@
+/*
+    Copyright (C) 2012  Prithu "bladez" Parker
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 #include <iostream>
 #include <windows.h>
 #include <stdlib.h>
@@ -14,10 +31,38 @@ using namespace std;
 
 string constructRconCommand(RConPacket rcon);
 
-int main(int arg, char *argc[])
+int main(int argc, char *argv[])
 {
-    char rconPass[] = "";
-    char command[] = "admins";
+    cout << "Copyright (C) 2012 Prithu Parker" << endl;
+    cout << "This program comes with ABSOLUTELY NO WARRANTY." << endl;
+    cout << "This is free software, and you are welcome to redistribute it" << endl;
+    cout << "under certain conditions; see http://www.gnu.org/licenses/ for details.\n\n" << endl;
+
+    if (argc < 2)
+    {
+        cout << "\n\nUsage: bercon.exe -ip xx.xxx.xx.xx -port xxxx -rcon xxxxxx -cmd xxxxx" << endl;
+        exit(3);
+    }
+
+    char *rconPass, *command, *ip, *port;
+    int portN;
+
+    for (int i = 0; i < argc; i++)
+    {
+        if (i + 1 != argc)
+        {
+            if (string(argv[i]) == "-ip")
+                ip = argv[i+1];
+            else if (string(argv[i]) == "-port")
+                port = argv[i+1];
+            else if (string(argv[i]) == "-rcon")
+                rconPass = argv[i+1];
+            else if (string(argv[i]) == "-cmd")
+                command = argv[i+1];
+        }
+    }
+
+    portN = atoi(port);
 
     RConPacket login;
 
@@ -30,7 +75,7 @@ int main(int arg, char *argc[])
     try
     {
         //cout << "Entered socket stuff" << endl;
-        SocketClient sock("210.50.4.25", 2302);
+        SocketClient sock(ip, portN);
 
         sock.SendBytes(loginPacket.c_str(), loginPacket.length());
 
@@ -52,21 +97,11 @@ int main(int arg, char *argc[])
                     {
                         cout << "Got smiley face. Login successful!" << endl;
                         loggedIn = true; /* now we can send the rcon command! */
-
-                        /*RConPacket rconCmd;
-                        rconCmd.cmd = command;
-                        rconCmd.cmdLen = 2 + strlen(rconCmd.cmd);
-                        rconCmd.packetCode = cmdPacketCode;
-
-                        std::string cmd = constructRconCommand(rconCmd);
-                        sock.SendBytes(cmd.c_str(), cmd.length());
-
-                        cmdSent = true;*/
-
                     }
                     else if (rcvd[7] == 0x02) /*0x02 is a server message packet, only receive if authenticated*/
                     {
-                        cout << "Since we're using UDP and don't terminate sockets, the server considers us still logged in from the previous login" << endl;
+                        //cout << "Since we're using UDP and don't terminate sockets, the server considers us still logged in from the previous login" << endl;
+                        cout << "Using previous authenticated session" << endl;
                         loggedIn = true;
                     }
                     else if (loginResponse == 0x00) /*invalid login*/
@@ -85,29 +120,32 @@ int main(int arg, char *argc[])
                     char responseCode = rcvd[7];
                     if (responseCode = 0x01)
                     {
-                        int sequenceNum = rcvd[8];
-                        /*received command response. nothing left to do now*/
-                        cmdResponse = true;
-                    }
-                    else if (responseCode = 0x00)
-                    {
-                        /*received multiple packets for command response*/
-                        int numPackets = rcvd[8];
-                        int packetIndex = rcvd[9];
+                        int sequenceNum = rcvd[8]; /*this app only sends 0x00, so only 0x00 is received*/
+                        if (rcvd[9] == 0x00)
+                        {
+                            int numPackets = rcvd[10];
+                            int packetsReceived = 0;
+                            int packetNum = rcvd[11];
 
+                            if ((numPackets - packetNum) == 1)
+                                cmdResponse = true;
+                        }
+                        else
+                        {
+                            /*received command response. nothing left to do now*/
+                            cmdResponse = true;
+                        }
                     }
                 }
-
-                cout << rcvd << endl;
-
-                cout.flush();
+                cout << rcvd.substr(8, rcvd.length()) << endl;
+                //cout.flush();
             }
 
             if (loggedIn && !cmdSent)
             {
                 /*logged in, now send command if it hasn't been sent*/
 
-                cout << "Sending command \"" << command << "\"" << endl;
+                cout << "\nSending command \"" << command << "\"\n" << endl;
 
                 RConPacket rconCmd;
                 rconCmd.cmd = command;
@@ -123,7 +161,7 @@ int main(int arg, char *argc[])
             else if (cmdResponse && cmdSent)
             {
                 /*We're done! Can exit now*/
-                return 0;
+                break;
             }
         }
     }
@@ -137,7 +175,7 @@ int main(int arg, char *argc[])
     }
     catch (...)
     {
-        cerr << "unhandled exception" << endl;
+        cerr << "Unhandled socket exception" << endl;
     }
 
     return 0;
@@ -147,17 +185,12 @@ string constructRconCommand(RConPacket rcon)
 {
     crc32 crc32Calc;
 
-    static int cmdSequence = 0x00;
-
     std::ostringstream cmdStream;
     cmdStream.put(0xFF);
     cmdStream.put(rcon.packetCode);
 
     if (rcon.packetCode == cmdPacketCode)
-    {
         cmdStream.put(0x00);
-        cmdSequence++;
-    }
 
     cmdStream << rcon.cmd;
 
@@ -200,7 +233,7 @@ string constructRconCommand(RConPacket rcon)
 
     std::string cmdPacket = cmdPacketStream.str();
 
-    //cout << endl << "Login packet: " << loginPacket << endl;
+    //cout << endl << "Login packet: " << cmdPacket << endl;
 
     return cmdPacket;
 }

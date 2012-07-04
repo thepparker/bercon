@@ -24,7 +24,7 @@
    René Nyffenegger rene.nyffenegger@adp-gmbh.ch
 
 
-   MODIFIED TO USE UDP BY Prithu Parker, prithu@iinet.net.au
+   MODIFIED TO USE UDP AND PROPERLY SEND STRINGS WITH NULL BYTES IN THEM BY Prithu "bladez" Parker, prithu@iinet.net.au, https://github.com/bladez-
 */
 
 
