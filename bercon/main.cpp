@@ -29,7 +29,7 @@
 
 using namespace std;
 
-string constructRconCommand(RConPacket rcon);
+std::string constructRconCommand(RConPacket rcon);
 
 int main(int argc, char *argv[])
 {
@@ -40,7 +40,7 @@ int main(int argc, char *argv[])
 
     if (argc < 2)
     {
-        cout << "\n\nUsage: bercon.exe -ip xx.xxx.xx.xx -port xxxx -rcon xxxxxx -cmd xxxxx" << endl;
+        cout << "\n\nUsage: bercon.exe -ip 1.2.3.4 -port 2302 -rcon pass -cmd \"players\"" << endl;
         exit(3);
     }
 
@@ -74,10 +74,12 @@ int main(int argc, char *argv[])
 
     try
     {
-        //cout << "Entered socket stuff" << endl;
+        cout << "Sending login information" << endl;
         SocketClient sock(ip, portN);
 
         sock.SendBytes(loginPacket.c_str(), loginPacket.length());
+
+        cout << "Login sent. Awaiting response" << endl;
 
         bool cmdResponse = false;
         bool cmdSent = false;
@@ -89,7 +91,7 @@ int main(int argc, char *argv[])
 
             if (!rcvd.empty())
             {
-                /*packet response structure is FUCKED. response is 0x00 : 0x00 or 0x01 on login, while the 0x00 is replaced with 0x00, 0x01, 0x02 for commands*/
+                /*packet response structure is FUCKED. response is 0x00 : 0x00 or 0x01 on login, while the (second) 0x00 is replaced with 0x00, 0x01, 0x02 for commands*/
                 if (!loggedIn && !rcvd.empty())
                 {
                     char loginResponse = rcvd[8];
@@ -118,7 +120,7 @@ int main(int argc, char *argv[])
                 else if (cmdSent)
                 {
                     char responseCode = rcvd[7];
-                    if (responseCode = 0x01)
+                    if (responseCode == 0x01)
                     {
                         int sequenceNum = rcvd[8]; /*this app only sends 0x00, so only 0x00 is received*/
                         if (rcvd[9] == 0x00)
@@ -161,9 +163,12 @@ int main(int argc, char *argv[])
             else if (cmdResponse && cmdSent)
             {
                 /*We're done! Can exit now*/
+                cout << "Command response received. Exiting" << endl;
                 break;
             }
         }
+
+        sock.Close();
     }
     catch (const char* sock)
     {
@@ -189,7 +194,7 @@ string constructRconCommand(RConPacket rcon)
     cmdStream.put(0xFF);
     cmdStream.put(rcon.packetCode);
 
-    if (rcon.packetCode == cmdPacketCode)
+    if (rcon.packetCode == cmdPacketCode) //need to include a sequence indicator to say which packet is being sent. Only sending 1 command, so we just use 0 (0x00)
         cmdStream.put(0x00);
 
     cmdStream << rcon.cmd;
