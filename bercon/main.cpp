@@ -22,6 +22,7 @@
 #include <iomanip>
 #include <sstream>
 #include <inttypes.h>
+#include <time.h>
 
 #include "socket.h"
 #include "crc32.h"
@@ -43,6 +44,8 @@ int main(int argc, char *argv[])
         cout << "\n\nUsage: bercon.exe -ip 1.2.3.4 -port 2302 -rcon pass -cmd \"players\"" << endl;
         exit(3);
     }
+
+    clock_t startTime = clock();
 
     char *rconPass, *command, *ip, *port;
     int portN;
@@ -85,8 +88,18 @@ int main(int argc, char *argv[])
         bool cmdSent = false;
         bool loggedIn = false;
 
+        clock_t curTime;
+
         while (1)
         {
+            curTime = clock();
+
+            if (((curTime - startTime) / CLOCKS_PER_SEC) > 10)
+            {
+                cout << "Waited more than 10 seconds for response. Exiting" << endl;
+                break;
+            }
+
             string rcvd = sock.ReceiveBytes();
 
             if (!rcvd.empty())
@@ -129,7 +142,7 @@ int main(int argc, char *argv[])
                             int packetsReceived = 0;
                             int packetNum = rcvd[11];
 
-                            if ((numPackets - packetNum) == 1)
+                            if ((numPackets - packetNum) == 0x01)
                                 cmdResponse = true;
                         }
                         else
